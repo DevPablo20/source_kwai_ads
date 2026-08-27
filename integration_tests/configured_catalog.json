@@ -1,0 +1,1037 @@
+{
+  "streams": [
+    {
+      "stream": {
+        "name": "advertisers",
+        "json_schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "accountId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "accountName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "agentId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "corpId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh"
+        ],
+        "source_defined_primary_key": [
+          [
+            "accountId"
+          ]
+        ],
+        "is_resumable": true
+      },
+      "sync_mode": "full_refresh",
+      "destination_sync_mode": "append"
+    },
+    {
+      "stream": {
+        "name": "campaigns",
+        "json_schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "time": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "accountId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "accountName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "campaignId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "campaignName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "cost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cost_decimal": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "exposure": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "click": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "action": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "cpm": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpc": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ctr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cvr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpa": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "play3s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "play5s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "playFinished": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registration": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registrationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "registrationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCart": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "addToCartCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCartRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunch": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "appLaunchCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunchRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activation": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "activationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageView": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "pageViewCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageViewRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh"
+        ],
+        "source_defined_primary_key": [
+          [
+            "campaignId"
+          ]
+        ],
+        "is_resumable": false
+      },
+      "sync_mode": "full_refresh",
+      "destination_sync_mode": "append"
+    },
+    {
+      "stream": {
+        "name": "ad_groups",
+        "json_schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "time": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "accountId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "accountName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "campaignId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "campaignName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "unitId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "unitName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "cost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cost_decimal": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "exposure": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "click": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "action": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "cpm": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpc": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ctr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cvr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpa": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "play3s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "play5s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "playFinished": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registration": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registrationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "registrationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCart": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "addToCartCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCartRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunch": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "appLaunchCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunchRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activation": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "activationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageView": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "pageViewCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageViewRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh"
+        ],
+        "source_defined_primary_key": [
+          [
+            "unitId"
+          ]
+        ],
+        "is_resumable": false
+      },
+      "sync_mode": "full_refresh",
+      "destination_sync_mode": "append"
+    },
+    {
+      "stream": {
+        "name": "ads",
+        "json_schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "time": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "accountId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "accountName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "campaignId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "campaignName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "unitId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "unitName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "creativeId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "creativeName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "cost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cost_decimal": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "exposure": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "click": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "action": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "cpm": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpc": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ctr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cvr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpa": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "play3s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "play5s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "playFinished": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registration": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registrationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "registrationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCart": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "addToCartCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCartRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunch": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "appLaunchCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunchRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activation": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "activationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageView": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "pageViewCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageViewRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh"
+        ],
+        "source_defined_primary_key": [
+          [
+            "creativeId"
+          ]
+        ],
+        "is_resumable": false
+      },
+      "sync_mode": "full_refresh",
+      "destination_sync_mode": "append"
+    },
+    {
+      "stream": {
+        "name": "ads_reports_daily",
+        "json_schema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "time": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "accountId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "accountName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "campaignId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "campaignName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "unitId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "unitName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "creativeId": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "creativeName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "id": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "cost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cost_decimal": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "exposure": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "click": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "action": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "cpm": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpc": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "ctr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cvr": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cpa": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "play3s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "play5s": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "playFinished": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registration": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "registrationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "registrationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCart": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "addToCartCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "addToCartRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunch": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "appLaunchCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "appLaunchRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activation": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "activationCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "activationRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageView": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "pageViewCost": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "pageViewRate": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "supported_sync_modes": [
+          "full_refresh",
+          "incremental"
+        ],
+        "source_defined_cursor": true,
+        "default_cursor_field": [
+          "time"
+        ],
+        "source_defined_primary_key": [
+          [
+            "accountId"
+          ],
+          [
+            "creativeId"
+          ],
+          [
+            "time"
+          ]
+        ],
+        "is_resumable": true
+      },
+      "sync_mode": "incremental",
+      "destination_sync_mode": "append",
+      "cursor_field": [
+        "time"
+      ]
+    }
+  ]
+}

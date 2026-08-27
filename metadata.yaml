@@ -1,0 +1,20 @@
+data:
+  connectorSubtype: api
+  connectorType: source
+  definitionId: 5a2ddcd3-80a8-4def-ab82-113fee6876ac
+  dockerImageTag: 0.1.0
+  dockerRepository: jaberpablo/source-kwai-ads
+  githubIssueLabel: source-kwai-ads
+  icon: icon.svg
+  license: MIT
+  name: Kwai Ads
+  releaseStage: alpha
+  supportLevel: community
+  connectorBuildOptions:
+    baseImage: docker.io/airbyte/python-connector-base:4.0.2@sha256:9fdb1888c4264cf6fee473649ecb593f56f58e5d0096a87ee0b231777e2e3e73
+  tags:
+    - language:python
+  ab_internal:
+    sl: 0
+    ql: 100
+metadataSpecVersion: "1.0"

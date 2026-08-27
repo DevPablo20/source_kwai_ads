@@ -1,0 +1,240 @@
+// ==========================================
+// CONFIGURAÇÕES INICIAIS
+// ==========================================
+const CLIENT_ID = ''; 
+const CLIENT_SECRET = ''; 
+const REFRESH_TOKEN = ''; 
+
+// === LISTA DE CONTAS ===
+const ACCOUNT_IDS = [];
+
+// ==========================================
+// FILTRO DE DATAS E COLUNA
+// ==========================================
+const DATA_INICIO = '2026-01-01'; // Formato AAAA-MM-DD
+const DATA_FIM = ''; // Deixe em branco para usar a data de hoje, ou preencha (ex: '2026-08-10')
+
+const TIME_ZONE = 'GMT-03:00'; 
+
+// Coluna a partir da qual os dados serão escritos (D = 4)
+const START_COLUMN = 4;
+
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('🔄 Atualizar Kwai')
+    .addItem('Baixar Dados Agora', 'getKwaiAdsData')
+    .addToUi();
+}
+
+function getAccessToken() {
+  const url = `https://business.kwai.com/oauth/token?grant_type=refresh_token&refresh_token=${REFRESH_TOKEN}&client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}`;
+  const response = UrlFetchApp.fetch(url, { method: 'get', muteHttpExceptions: true });
+  const json = JSON.parse(response.getContentText());
+  if (json.access_token) return json.access_token;
+  throw new Error("Falha na autenticação do Kwai.");
+}
+
+const KWAI_MAPS = {
+  campaignType: { 1: "Awareness", 2: "Consideration (Behavior)", 3: "Conversion" },
+  bidType: { 1: "CPC", 2: "CPM", 3: "OCPC", 4: "OCPM", 10: "OCPM" },
+  actionType: { 1: "Clicks", 2: "Impressions", 21: "Landing Page Views", 43: "Follow / Profile Visit", 100: "Conversion" }
+};
+
+// ==========================================
+// 1. BUSCA DAS CONFIGURAÇÕES OFICIAIS
+// ==========================================
+function fetchKwaiConfig(endpoint, accountId, accessToken, idKey) {
+  const map = {};
+  let pageNo = 1;
+  let hasMore = true;
+
+  while (hasMore) {
+    const payload = {
+      "accountId": accountId,
+      "adCategory": 1, 
+      "pageNo": pageNo,
+      "pageSize": 100
+    };
+
+    const options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'Access-Token': accessToken },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+
+    const response = UrlFetchApp.fetch(endpoint, options);
+    const json = JSON.parse(response.getContentText());
+
+    if (json.status === 200 && json.data) {
+      const items = Array.isArray(json.data) ? json.data : (json.data.details || json.data.data || []);
+      if (items.length > 0) {
+        items.forEach(item => {
+          const id = item[idKey];
+          if (id) map[id] = item;
+        });
+        pageNo++;
+        Utilities.sleep(200);
+      } else {
+        hasMore = false;
+      }
+    } else {
+      hasMore = false;
+    }
+  }
+  return map;
+}
+
+function deepSearchURL(obj) {
+  let url = "";
+  function search(current) {
+    if (url) return; 
+    if (typeof current === 'string' && current.startsWith('http')) {
+      url = current; return;
+    }
+    if (typeof current === 'object' && current !== null) {
+      for (let key in current) {
+        if (typeof current[key] === 'string' && current[key].startsWith('http') && key.toLowerCase().includes('url')) {
+          url = current[key]; return;
+        }
+        search(current[key]);
+      }
+    }
+  }
+  search(obj);
+  return url;
+}
+
+// ==========================================
+// 2. FUNÇÃO PRINCIPAL
+// ==========================================
+function getKwaiAdsData() {
+  const accessToken = getAccessToken();
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  const reportUrl = 'https://developers.kwai.com/rest/n/mapi/report/dspCreativeEffectQuery';
+  
+  let dataBeginTime = DATA_INICIO ? new Date(DATA_INICIO + "T00:00:00").getTime() : new Date(new Date().getFullYear(), 0, 1).getTime();
+  let dataEndTime = DATA_FIM ? new Date(DATA_FIM + "T23:59:59").getTime() : new Date().getTime();
+  
+  let allData = []; 
+  
+  const header = [
+    "Date / Time", "Account name", "Account ID", "Campaign name", "Campaign ID", 
+    "Objective", "Ad set name", "Ad set ID", "Optimization Goal", "Conversion Goal", 
+    "Creative name", "Video Name", "Charging Method", "Cost", "Impressions", 
+    "Clicks", "Video plays at 25%", "Video plays at 50%", "Video plays at 75%", 
+    "Video completions", "3-second video play", "5-second video play", "Through plays", 
+    "Total Engagement", "New Followers", "Profile Visits", "Likes", "Comments", 
+    "Shares", "Destination URL"
+  ];
+  
+  const uniqueAccountIds = [...new Set(ACCOUNT_IDS)];
+  
+  uniqueAccountIds.forEach(accountId => {
+    
+    const campMap = fetchKwaiConfig('https://developers.kwai.com/rest/n/mapi/campaign/dspCampaignPageQueryNOMEQUERY', accountId, accessToken, 'campaignId');
+    const unitMap = fetchKwaiConfig('https://developers.kwai.com/rest/n/mapi/unit/dspUnitPageQueryNOMEQUERY', accountId, accessToken, 'unitId');
+    const creativeMap = fetchKwaiConfig('https://developers.kwai.com/rest/n/mapi/creative/dspCreativePageQueryNOMEQUERY', accountId, accessToken, 'creativeId');
+
+    let pageNo = 1;
+    let hasMorePages = true;
+    while (hasMorePages) {
+      const payload = {
+        "granularity": 3, "dataBeginTime": dataBeginTime, "dataEndTime": dataEndTime,
+        "timeZoneIana": "UTC-3", "accountId": accountId, "pageNo": pageNo, "pageSize": 500
+      };
+      
+      const response = UrlFetchApp.fetch(reportUrl, {
+        method: 'post', contentType: 'application/json', headers: { 'Access-Token': accessToken },
+        payload: JSON.stringify(payload), muteHttpExceptions: true
+      });
+      const json = JSON.parse(response.getContentText());
+      
+      if (json.status === 200 && json.data && json.data.data && json.data.data.length > 0) {
+        json.data.data.forEach(row => {
+          
+          const impressions = row.exposure || row.impression || 0;
+          if (impressions <= 0) return; 
+          
+          let formattedDate = "";
+          const timeValue = row.time || row.statDate || row.statDatetime;
+          if (timeValue) {
+            let dateNum = parseInt(timeValue);
+            if (!isNaN(dateNum)) {
+              if (dateNum < 10000000000) dateNum *= 1000;
+              formattedDate = Utilities.formatDate(new Date(dateNum), TIME_ZONE, "dd/MM/yyyy");
+            }
+          }
+
+          let campConfig = campMap[row.campaignId] || {};
+          let unitConfig = unitMap[row.unitId] || {};
+          let creativeConfig = creativeMap[row.creativeId] || {};
+
+          let objectiveRaw = campConfig.campaignType || row.campaignType;
+          let objective = KWAI_MAPS.campaignType[objectiveRaw] || objectiveRaw || "N/A";
+          
+          let chargeRaw = unitConfig.bidType || row.chargeType;
+          let chargingMethod = KWAI_MAPS.bidType[chargeRaw] || chargeRaw || "N/A";
+          
+          let optGoalRaw = unitConfig.ocpxActionType || unitConfig.bidType || row.bidType;
+          let optGoal = KWAI_MAPS.actionType[optGoalRaw] || optGoalRaw || "N/A";
+          
+          let convGoalRaw = unitConfig.ocpxActionType || row.actionType;
+          let convGoal = KWAI_MAPS.actionType[convGoalRaw] || convGoalRaw || "N/A";
+          
+          let destinationUrl = creativeConfig.landingPageUrl || unitConfig.websiteUrl || deepSearchURL(creativeConfig) || "Sem URL";
+          let costFormatted = (row.cost || row.charge || 0) / 1000000;
+          let totalEngagement = row.interactionCnt || ((row.adPhotoLikeCnt||0) + (row.commentSubmitCnt||0) + (row.adPhotoForwardCnt||0) + (row.userFollowClickCnt||0));
+
+          allData.push([
+            formattedDate, row.accountName || "", row.accountId || "", row.campaignName || "", row.campaignId || "", 
+            objective, row.unitName || "", row.unitId || "", optGoal, convGoal, row.creativeName || "", 
+            row.materialName || row.photoName || "", chargingMethod, costFormatted, impressions, row.click || 0, 
+            row.photo25percentPlayCnt || 0, row.photo50percentPlayCnt || 0, row.photo75percentPlayCnt || 0, 
+            row.playFinished || row.photoPlayCompletion || 0, row.play3s || 0, row.play5s || 0, row.photoThruPlayCnt || 0, 
+            totalEngagement, row.userFollowClickCnt || 0, row.openProfileCnt || 0, row.adPhotoLikeCnt || 0, 
+            row.commentSubmitCnt || 0, row.adPhotoForwardCnt || 0, destinationUrl
+          ]);
+        });
+        pageNo++;
+        Utilities.sleep(300);
+      } else {
+        hasMorePages = false;
+      }
+    }
+  });
+  
+  // Limpa apenas a área onde os dados serão escritos (A partir da START_COLUMN)
+  const maxRows = sheet.getMaxRows();
+  if (maxRows > 0) {
+    sheet.getRange(1, START_COLUMN, maxRows, header.length).clearContent();
+  }
+  
+  if (allData.length > 0) {
+    // Ordenação robusta por data (Transforma DD/MM/YYYY em formato numérico para ordenar perfeitamente)
+    allData.sort((a, b) => {
+      const parseDate = (dateStr) => {
+        if (!dateStr) return 0;
+        let parts = dateStr.split('/');
+        if (parts.length === 3) {
+          // Ano, Mês (0 a 11), Dia
+          return new Date(parts[2], parseInt(parts[1]) - 1, parts[0]).getTime();
+        }
+        return 0;
+      };
+      
+      return parseDate(a[0]) - parseDate(b[0]);
+    });
+    
+    // Adiciona o cabeçalho no início dos dados já ordenados
+    allData.unshift(header);
+    
+    // Cola tudo na planilha respeitando a coluna de início
+    sheet.getRange(1, START_COLUMN, allData.length, allData[0].length).setValues(allData);
+    Logger.log("Extração e ordenação por data finalizadas com sucesso!");
+  } else {
+    // Se não tiver dados, apenas insere o cabeçalho na coluna definida
+    sheet.getRange(1, START_COLUMN, 1, header.length).setValues([header]);
+    Logger.log("Nenhum dado encontrado no período selecionado.");
+  }
+}

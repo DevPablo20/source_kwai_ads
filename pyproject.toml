@@ -1,0 +1,23 @@
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+version = "0.1.0"
+name = "source-kwai-ads"
+description = "Source implementation for Kwai Ads (Kwai Marketing API)."
+authors = ["Pablo Jaber <jaberpablo@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "source_kwai_ads" }]
+
+[tool.poetry.dependencies]
+python = "^3.11,<3.12"
+airbyte-cdk = "^7.28.2"
+
+[tool.poetry.scripts]
+source-kwai-ads = "source_kwai_ads.run:run"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"
+requests-mock = "^1.9.3"
+pytest-mock = "^3.6"

@@ -1,0 +1,12 @@
+.git
+.gitignore
+.python-version
+secrets/
+unit_tests/
+integration_tests/
+scripts/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/

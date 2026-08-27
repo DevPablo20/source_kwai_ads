@@ -1,0 +1,7 @@
+{
+  "client_id": "invalid",
+  "client_secret": "invalid",
+  "refresh_token": "invalid",
+  "agent_id": 0,
+  "start_date": "2026-01-01"
+}
