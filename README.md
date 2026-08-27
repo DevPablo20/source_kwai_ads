@@ -53,10 +53,10 @@ poetry run source-kwai-ads read --config secrets/config.json --catalog integrati
 ## Build e publicação da imagem
 
 ```bash
-docker build --platform linux/amd64 -t jaberpablo/source-kwai-ads:0.1.0 .
-docker run --rm jaberpablo/source-kwai-ads:0.1.0 spec
+docker build --platform linux/amd64 -t devpablo20/source-kwai-ads:0.1.0 .
+docker run --rm devpablo20/source-kwai-ads:0.1.0 spec
 docker login
-docker push jaberpablo/source-kwai-ads:0.1.0
+docker push devpablo20/source-kwai-ads:0.1.0
 ```
 
-Import no Airbyte self-hosted: **Settings → Sources → New connector → Add a new Docker connector**, usando `jaberpablo/source-kwai-ads` como Docker repository name e `0.1.0` como tag.
+Import no Airbyte self-hosted: **Settings → Sources → New connector → Add a new Docker connector**, usando `devpablo20/source-kwai-ads` como Docker repository name e `0.1.0` como tag.
