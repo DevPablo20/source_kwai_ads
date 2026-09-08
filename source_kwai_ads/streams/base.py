@@ -178,6 +178,7 @@ class KwaiReportStream(HttpSubStream, KwaiStream, ABC):
         self._time_zone = time_zone
         self._tzinfo = parse_utc_offset(time_zone)
         self._account_ids = list(account_ids) if account_ids else None
+        self._resolved_accounts: Optional[List[Mapping[str, Any]]] = None
 
     def _iter_parent_accounts(
         self,
@@ -185,13 +186,29 @@ class KwaiReportStream(HttpSubStream, KwaiStream, ABC):
         cursor_field: Optional[List[str]] = None,
         stream_state: Optional[Mapping[str, Any]] = None,
     ) -> Iterable[Mapping[str, Any]]:
-        if self._account_ids is not None:
-            for account_id in self._account_ids:
-                yield {"accountId": account_id}
-            return
+        """
+        Resolves the set of accounts to partition by, once per stream instance.
 
-        for parent_slice in HttpSubStream.stream_slices(self, sync_mode=sync_mode, cursor_field=cursor_field, stream_state=stream_state):
-            yield parent_slice["parent"]
+        The memoization is load-bearing, not an optimization. `HttpSubStream`
+        reads the parent through `read_only_records()`, which goes through
+        `Stream.read()` -- and a resumable full-refresh stream records completion
+        in its own cursor, so a second read of the same parent instance yields
+        nothing at all. Every report stream must therefore resolve the account
+        list exactly once and reuse it; `source.py` additionally gives each
+        report stream its own parent instance so the streams can't exhaust each
+        other. Neither guard alone is sufficient.
+        """
+        if self._resolved_accounts is None:
+            if self._account_ids is not None:
+                self._resolved_accounts = [{"accountId": account_id} for account_id in self._account_ids]
+            else:
+                self._resolved_accounts = [
+                    parent_slice["parent"]
+                    for parent_slice in HttpSubStream.stream_slices(
+                        self, sync_mode=sync_mode, cursor_field=cursor_field, stream_state=stream_state
+                    )
+                ]
+        yield from self._resolved_accounts
 
     def stream_slices(
         self,
@@ -208,12 +225,20 @@ class KwaiReportStream(HttpSubStream, KwaiStream, ABC):
             }
 
     def _date_range_ms(self) -> Tuple[int, int]:
+        """
+        `end_date` is inclusive, so the window has to run to the last millisecond of
+        that day. Parsing it plainly yields midnight *at the start* of the day, which
+        silently drops the whole final day from the range -- measured on account
+        76837727, a range ending 2026-06-30 reported R$ 170,168.58 against the
+        R$ 171,979.20 the daily stream summed over the same dates, exactly the
+        R$ 1,810.62 spent on the 30th.
+        """
         start = datetime.strptime(self._start_date, "%Y-%m-%d").replace(tzinfo=self._tzinfo)
-        end = (
-            datetime.strptime(self._end_date, "%Y-%m-%d").replace(tzinfo=self._tzinfo)
-            if self._end_date
-            else datetime.now(self._tzinfo)
-        )
+        if self._end_date:
+            end_day = datetime.strptime(self._end_date, "%Y-%m-%d").replace(tzinfo=self._tzinfo)
+            end = end_day + timedelta(days=1) - timedelta(milliseconds=1)
+        else:
+            end = datetime.now(self._tzinfo)
         return int(start.timestamp() * 1000), int(end.timestamp() * 1000)
 
     def request_body_params(
@@ -229,3 +254,15 @@ class KwaiReportStream(HttpSubStream, KwaiStream, ABC):
             "dataEndTime": stream_slice["dataEndTime"],
             "timeZoneIana": self._time_zone,
         }
+
+    def parse_response(self, response: requests.Response, **kwargs: Any) -> Iterable[Mapping[str, Any]]:
+        """
+        Adds `cost_decimal` to every report record. Kwai reports `cost` in
+        micro-units (10^6), so the raw value reads as a nonsensical amount in any
+        currency column downstream; every report stream's schema already promises
+        the converted figure alongside it.
+        """
+        for record in super().parse_response(response, **kwargs):
+            if record.get("cost") is not None:
+                record["cost_decimal"] = record["cost"] / 1_000_000
+            yield record

@@ -2,53 +2,6 @@
   "streams": [
     {
       "stream": {
-        "name": "advertisers",
-        "json_schema": {
-          "$schema": "http://json-schema.org/draft-07/schema#",
-          "type": "object",
-          "additionalProperties": true,
-          "properties": {
-            "accountId": {
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "accountName": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
-            "agentId": {
-              "type": [
-                "integer",
-                "null"
-              ]
-            },
-            "corpId": {
-              "type": [
-                "integer",
-                "null"
-              ]
-            }
-          }
-        },
-        "supported_sync_modes": [
-          "full_refresh"
-        ],
-        "source_defined_primary_key": [
-          [
-            "accountId"
-          ]
-        ],
-        "is_resumable": true
-      },
-      "sync_mode": "full_refresh",
-      "destination_sync_mode": "append"
-    },
-    {
-      "stream": {
         "name": "campaigns",
         "json_schema": {
           "$schema": "http://json-schema.org/draft-07/schema#",
@@ -57,7 +10,7 @@
           "properties": {
             "time": {
               "type": [
-                "string",
+                "integer",
                 "null"
               ]
             },
@@ -273,7 +226,12 @@
         "is_resumable": false
       },
       "sync_mode": "full_refresh",
-      "destination_sync_mode": "append"
+      "destination_sync_mode": "overwrite",
+      "primary_key": [
+        [
+          "campaignId"
+        ]
+      ]
     },
     {
       "stream": {
@@ -285,7 +243,7 @@
           "properties": {
             "time": {
               "type": [
-                "string",
+                "integer",
                 "null"
               ]
             },
@@ -513,7 +471,12 @@
         "is_resumable": false
       },
       "sync_mode": "full_refresh",
-      "destination_sync_mode": "append"
+      "destination_sync_mode": "overwrite",
+      "primary_key": [
+        [
+          "unitId"
+        ]
+      ]
     },
     {
       "stream": {
@@ -525,7 +488,7 @@
           "properties": {
             "time": {
               "type": [
-                "string",
+                "integer",
                 "null"
               ]
             },
@@ -596,7 +559,19 @@
                 "null"
               ]
             },
+            "charge": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "exposure": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "impression": {
               "type": [
                 "integer",
                 "null"
@@ -644,6 +619,48 @@
                 "null"
               ]
             },
+            "campaignType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "bidType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "chargeType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "ocpxActionType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "actionType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "materialName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "photoName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "play3s": {
               "type": [
                 "integer",
@@ -656,7 +673,73 @@
                 "null"
               ]
             },
+            "photo25percentPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photo50percentPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photo75percentPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photoThruPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
             "playFinished": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photoPlayCompletion": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "interactionCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "userFollowClickCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "openProfileCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "adPhotoLikeCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "commentSubmitCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "adPhotoForwardCnt": {
               "type": [
                 "integer",
                 "null"
@@ -765,7 +848,12 @@
         "is_resumable": false
       },
       "sync_mode": "full_refresh",
-      "destination_sync_mode": "append"
+      "destination_sync_mode": "overwrite",
+      "primary_key": [
+        [
+          "creativeId"
+        ]
+      ]
     },
     {
       "stream": {
@@ -775,9 +863,16 @@
           "type": "object",
           "additionalProperties": true,
           "properties": {
-            "time": {
+            "date": {
               "type": [
                 "string",
+                "null"
+              ],
+              "format": "date"
+            },
+            "time": {
+              "type": [
+                "integer",
                 "null"
               ]
             },
@@ -848,7 +943,19 @@
                 "null"
               ]
             },
+            "charge": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
             "exposure": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "impression": {
               "type": [
                 "integer",
                 "null"
@@ -896,6 +1003,48 @@
                 "null"
               ]
             },
+            "campaignType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "bidType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "chargeType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "ocpxActionType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "actionType": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "materialName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "photoName": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "play3s": {
               "type": [
                 "integer",
@@ -908,7 +1057,73 @@
                 "null"
               ]
             },
+            "photo25percentPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photo50percentPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photo75percentPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photoThruPlayCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
             "playFinished": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "photoPlayCompletion": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "interactionCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "userFollowClickCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "openProfileCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "adPhotoLikeCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "commentSubmitCnt": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "adPhotoForwardCnt": {
               "type": [
                 "integer",
                 "null"
@@ -1012,7 +1227,7 @@
         ],
         "source_defined_cursor": true,
         "default_cursor_field": [
-          "time"
+          "date"
         ],
         "source_defined_primary_key": [
           [
@@ -1022,15 +1237,26 @@
             "creativeId"
           ],
           [
-            "time"
+            "date"
           ]
         ],
         "is_resumable": true
       },
       "sync_mode": "incremental",
-      "destination_sync_mode": "append",
+      "destination_sync_mode": "append_dedup",
       "cursor_field": [
-        "time"
+        "date"
+      ],
+      "primary_key": [
+        [
+          "accountId"
+        ],
+        [
+          "creativeId"
+        ],
+        [
+          "date"
+        ]
       ]
     }
   ]

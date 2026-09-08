@@ -3,7 +3,7 @@
   "type": "object",
   "additionalProperties": true,
   "properties": {
-    "time": { "type": ["string", "null"] },
+    "time": { "type": ["integer", "null"] },
     "accountId": { "type": ["integer", "null"] },
     "accountName": { "type": ["string", "null"] },
     "campaignId": { "type": ["integer", "null"] },

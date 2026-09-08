@@ -5,6 +5,8 @@
   "properties": {
     "accountId": { "type": ["integer", "null"] },
     "accountName": { "type": ["string", "null"] },
+    "legalEntityName": { "type": ["string", "null"] },
+    "currency": { "type": ["string", "null"] },
     "agentId": { "type": ["integer", "null"] },
     "corpId": { "type": ["integer", "null"] }
   }

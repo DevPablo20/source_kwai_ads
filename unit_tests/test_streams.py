@@ -154,15 +154,30 @@ class TestAccountPartitioning:
         slices = list(campaigns.stream_slices(sync_mode=SyncMode.full_refresh))
         assert [s["account_id"] for s in slices] == [333, 111, 222]
 
+    def test_end_date_is_inclusive_of_its_final_day(self, advertisers):
+        # end_date is documented as inclusive. Parsing it plainly gives midnight at the
+        # START of that day, which drops the whole final day from every entity stream --
+        # a range ending 2026-06-30 under-reported spend by exactly the 30th's total.
+        campaigns = Campaigns(parent=advertisers, start_date="2026-06-01", end_date="2026-06-30", time_zone="UTC-3", authenticator=None)
+        _, end_ms = campaigns._date_range_ms()
+        end = datetime.datetime.fromtimestamp(end_ms / 1000, tz=datetime.timezone(datetime.timedelta(hours=-3)))
+        assert end == datetime.datetime(2026, 6, 30, 23, 59, 59, 999000, tzinfo=datetime.timezone(datetime.timedelta(hours=-3)))
+
     def test_request_body_includes_timezone(self, advertisers):
         campaigns = Campaigns(parent=advertisers, start_date="2026-08-01", time_zone="UTC-3", authenticator=None)
         body = campaigns.request_body_json(stream_state={}, stream_slice={"account_id": 111, "dataBeginTime": 1, "dataEndTime": 2})
         assert body["timeZoneIana"] == "UTC-3"
-        assert body["granularity"] == 3
+        # 1 = consolidated summary over the window. Confirmed live: the totals it
+        # returns reconcile exactly with summing the granularity=3 daily rows.
+        assert body["granularity"] == 1
 
 
-class TestEntityReportDedup:
-    def test_duplicate_entity_ids_across_days_are_deduped(self, advertisers):
+class TestEntityReports:
+    def test_records_are_not_dropped_in_memory(self, advertisers):
+        # granularity=1 makes the API return one consolidated row per entity, so the
+        # connector no longer discards rows to fake that aggregation. Dropping rows
+        # locally used to keep whichever day arrived first and present its metrics as
+        # the period total; every row the API sends must now survive.
         campaigns = Campaigns(parent=advertisers, start_date="2026-08-01", authenticator=None)
         with requests_mock.Mocker() as m:
             m.post(
@@ -170,12 +185,13 @@ class TestEntityReportDedup:
                 json={
                     "status": "OK",
                     "message": "",
-                    "data": {"total": 2, "data": [{"campaignId": 9, "time": "2026-08-01"}, {"campaignId": 9, "time": "2026-08-02"}]},
+                    "data": {"total": 2, "data": [{"campaignId": 9, "cost": 1000000}, {"campaignId": 10, "cost": 2000000}]},
                 },
             )
             resp = requests.post(f"{BASE_URL}/rest/n/mapi/report/dspCampaignEffectQuery", json={})
             records = list(campaigns.parse_response(resp))
-        assert len(records) == 1
+        assert [r["campaignId"] for r in records] == [9, 10]
+        assert [r["cost_decimal"] for r in records] == [1.0, 2.0]
 
     @pytest.mark.parametrize("stream_cls,pk", [(Campaigns, "campaignId"), (AdGroups, "unitId"), (Ads, "creativeId")])
     def test_stream_shape(self, advertisers, stream_cls, pk):
@@ -197,19 +213,19 @@ class TestAdsReportsDaily:
 
     def test_resumes_from_lookback_adjusted_state(self, advertisers):
         stream = self._stream(advertisers)
-        stream.state = {"111": {"time": "2026-08-20"}}
+        stream.state = {"111": {"date": "2026-08-20"}}
         begin_ms, _ = next(iter(stream._account_windows(111)))
         resumed_date = datetime.datetime.fromtimestamp(begin_ms / 1000, tz=datetime.timezone.utc).date()
         assert str(resumed_date) == "2026-08-17"
 
     def test_state_is_isolated_per_account(self, advertisers):
         stream = self._stream(advertisers)
-        stream.state = {"111": {"time": "2026-08-25"}}
+        stream.state = {"111": {"date": "2026-08-25"}}
         window_111 = next(iter(stream._account_windows(111)))
         window_222 = next(iter(stream._account_windows(222)))
         assert window_111 != window_222
 
-    def test_parse_response_adds_cost_decimal_and_updates_state(self, advertisers):
+    def test_parse_response_adds_cost_decimal_and_date(self, advertisers):
         stream = self._stream(advertisers, page_size=10)
         stream_slice = {"account_id": 111, "dataBeginTime": 1000, "dataEndTime": 2000}
         with requests_mock.Mocker() as m:
@@ -224,7 +240,7 @@ class TestAdsReportsDaily:
             resp = requests.post(f"{BASE_URL}/rest/n/mapi/report/dspCreativeEffectQuery", json={})
             records = list(stream.parse_response(resp, stream_slice=stream_slice))
         assert records[0]["cost_decimal"] == 5.0
-        assert stream.state == {"111": {"time": "2026-08-05"}}
+        assert records[0]["date"] == "2026-08-05"
 
     def test_parse_response_handles_real_epoch_ms_time_field(self, advertisers):
         # Confirmed live against the real API: `time` is epoch milliseconds (midnight
@@ -244,7 +260,7 @@ class TestAdsReportsDaily:
             resp = requests.post(f"{BASE_URL}/rest/n/mapi/report/dspCreativeEffectQuery", json={})
             records = list(stream.parse_response(resp, stream_slice=stream_slice))
         assert records[0]["time"] == 1785553200000  # raw record value is never mutated
-        assert stream.state == {"111": {"time": "2026-08-01"}}
+        assert records[0]["date"] == "2026-08-01"  # ...the day bucket is added alongside it
 
     def test_day_boundaries_align_to_configured_timezone_not_utc(self, advertisers):
         # 00:00 UTC-3 on 2026-08-17 is 03:00 UTC -- if window math used UTC instead of
@@ -256,5 +272,68 @@ class TestAdsReportsDaily:
 
     def test_supports_incremental_sync_mode(self, advertisers):
         stream = self._stream(advertisers)
-        assert stream.cursor_field == "time"
+        assert stream.cursor_field == "date"
         assert stream.supports_incremental is True
+
+    def test_primary_key_uses_date_not_raw_epoch_time(self, advertisers):
+        # The dedup bug this guards: `time` is epoch ms, so declaring it a string in
+        # the schema made type-checking destinations null the column -- and a null
+        # primary-key component collapses a creative's whole history into one row.
+        # Every PK component must be a field the schema declares truthfully.
+        stream = self._stream(advertisers)
+        assert stream.primary_key == ["accountId", "creativeId", "date"]
+        properties = stream.get_json_schema()["properties"]
+        assert properties["date"]["type"] == ["string", "null"]
+        assert properties["time"]["type"] == ["integer", "null"]
+
+    def test_daily_grain_yields_one_row_per_creative_per_day(self, advertisers):
+        stream = self._stream(advertisers, page_size=10, time_zone="UTC-3")
+        stream_slice = {"account_id": 111, "dataBeginTime": 1000, "dataEndTime": 2000}
+        day_one, day_two = 1785553200000, 1785639600000
+        with requests_mock.Mocker() as m:
+            m.post(
+                f"{BASE_URL}/rest/n/mapi/report/dspCreativeEffectQuery",
+                json={
+                    "status": 200,
+                    "data": {
+                        "total": 4,
+                        "data": [
+                            {"creativeId": 1, "accountId": 111, "time": day_one},
+                            {"creativeId": 2, "accountId": 111, "time": day_one},
+                            {"creativeId": 1, "accountId": 111, "time": day_two},
+                            {"creativeId": 2, "accountId": 111, "time": day_two},
+                        ],
+                    },
+                },
+            )
+            resp = requests.post(f"{BASE_URL}/rest/n/mapi/report/dspCreativeEffectQuery", json={})
+            records = list(stream.parse_response(resp, stream_slice=stream_slice))
+        keys = [(r["accountId"], r["creativeId"], r["date"]) for r in records]
+        assert len(keys) == 4
+        assert len(set(keys)) == 4  # nothing collapses under the declared primary key
+
+    def test_ads_reports_daily_requests_daily_granularity(self, advertisers):
+        stream = self._stream(advertisers)
+        body = stream.request_body_json(stream_state={}, stream_slice={"account_id": 111, "dataBeginTime": 1, "dataEndTime": 2})
+        assert body["granularity"] == 3
+
+    def test_cursor_advances_only_after_a_window_is_fully_read(self, advertisers):
+        # Rows arrive in no particular date order, so checkpointing the running max
+        # mid-window can persist the last day of a window while earlier days of that
+        # same window are still unread -- a failure there resumes past data that was
+        # never emitted. Nothing may reach `state` until the slice is exhausted.
+        stream = self._stream(advertisers, page_size=10, time_zone="UTC-3")
+        stream_slice = {"account_id": 111, "dataBeginTime": 1000, "dataEndTime": 2000}
+        with requests_mock.Mocker() as m:
+            m.post(
+                f"{BASE_URL}/rest/n/mapi/report/dspCreativeEffectQuery",
+                json={
+                    "status": 200,
+                    "data": {"total": 2, "data": [{"creativeId": 1, "time": 1785639600000}, {"creativeId": 2, "time": 1785553200000}]},
+                },
+            )
+            records = stream.read_records(sync_mode=SyncMode.incremental, stream_slice=stream_slice)
+            next(iter(records))  # first record consumed, slice still in flight
+            assert stream.state == {}
+            list(records)  # drain the slice
+        assert stream.state == {"111": {"date": "2026-08-02"}}  # max of the window, once complete

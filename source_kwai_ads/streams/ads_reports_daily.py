@@ -14,7 +14,13 @@ class AdsReportsDaily(KwaiReportStream, CheckpointMixin):
     Daily performance fact table per creative (`dspCreativeEffectQuery`,
     granularity=3). This is the one incremental stream in the connector.
 
-    State is tracked per account (`{"<account_id>": {"time": "2026-08-01"}}`)
+    Confirmed live against account 76837727 for June 2026: granularity=3 returns
+    one row per (creative, day) -- 170 rows spanning 30 distinct `time` values for
+    9 creatives -- and every (accountId, creativeId, time) tuple is distinct. The
+    grain is therefore sound at the source; what used to break was how that grain
+    was *declared* (see `date` below).
+
+    State is tracked per account (`{"<account_id>": {"date": "2026-08-01"}}`)
     rather than globally: different accounts in the same agency sync at different
     paces, and a single shared cursor would make the sync re-fetch -- or worse,
     silently skip -- days for whichever account lags behind the others.
@@ -26,17 +32,28 @@ class AdsReportsDaily(KwaiReportStream, CheckpointMixin):
     unbounded date range.
     """
 
-    cursor_field = "time"
+    cursor_field = "date"
 
     def __init__(self, *, window_in_days: int = 30, lookback_window_days: int = 3, **kwargs: Any):
         super().__init__(**kwargs)
         self._window_in_days = window_in_days
         self._lookback_window_days = lookback_window_days
         self._state: MutableMapping[str, Any] = {}
+        # Max cursor seen within the slice currently being read, per account. Held
+        # aside rather than written straight into `_state` -- see `read_records`.
+        self._pending_cursor: MutableMapping[str, str] = {}
 
     @property
     def primary_key(self) -> List[str]:
-        return ["accountId", "creativeId", "time"]
+        """
+        `date` rather than the raw `time` it is derived from. `time` is epoch
+        milliseconds (an integer), so a destination that type-checks records against
+        the declared schema nulls it out whenever the declared type disagrees --
+        and a nulled primary-key component collapses every row of a creative into
+        one surviving row during deduplication. A "YYYY-MM-DD" string is declared
+        honestly, survives that check, and pins the row to the day it describes.
+        """
+        return ["accountId", "creativeId", "date"]
 
     @property
     def state(self) -> MutableMapping[str, Any]:
@@ -56,6 +73,10 @@ class AdsReportsDaily(KwaiReportStream, CheckpointMixin):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = dict(super().request_body_params(stream_state, stream_slice, next_page_token))
+        # Confirmed live on the *EffectQuery endpoints: 1 = consolidated summary,
+        # 2 = hourly (and rejected beyond a 3-day window), 3 = daily. The granularity
+        # table in the complementary guide (1 = summary, 2 = daily) describes
+        # dspPopulationAnalysisEffectQuery and does not carry over here.
         params["granularity"] = 3
         return params
 
@@ -93,13 +114,13 @@ class AdsReportsDaily(KwaiReportStream, CheckpointMixin):
     def _day_end_ms(self, day) -> int:
         return int(datetime.combine(day + timedelta(days=1), datetime.min.time(), tzinfo=self._tzinfo).timestamp() * 1000) - 1
 
-    def _normalize_cursor_value(self, value: Any) -> Optional[str]:
+    def _to_date(self, value: Any) -> Optional[str]:
         """
-        Kwai's `time` field is epoch milliseconds (e.g. 1785553200000), stamped at
+        Kwai's `time` field is epoch milliseconds (e.g. 1780282800000), stamped at
         midnight in the requested `timeZoneIana` -- confirmed live, not the
-        "YYYY-MM-DD" string the docs' examples suggested. This derives a comparable
-        "YYYY-MM-DD" bucket for internal per-account state tracking without mutating
-        the raw record value.
+        "YYYY-MM-DD" string the docs' examples suggested. This derives the
+        "YYYY-MM-DD" day bucket the row actually describes, read back in that same
+        offset so the date matches the day Kwai bucketed the metrics into.
         """
         if value is None:
             return None
@@ -110,13 +131,42 @@ class AdsReportsDaily(KwaiReportStream, CheckpointMixin):
     def parse_response(self, response: Any, *, stream_slice: Optional[Mapping[str, Any]] = None, **kwargs: Any) -> Iterable[Mapping[str, Any]]:
         account_id = str(stream_slice["account_id"]) if stream_slice else None
         for record in super().parse_response(response, stream_slice=stream_slice, **kwargs):
-            if record.get("cost") is not None:
-                record["cost_decimal"] = record["cost"] / 1_000_000
-
-            record_date = self._normalize_cursor_value(record.get(self.cursor_field))
-            if account_id and record_date:
-                account_state = self._state.setdefault(account_id, {})
-                if record_date > account_state.get(self.cursor_field, ""):
-                    account_state[self.cursor_field] = record_date
+            record_date = self._to_date(record.get("time"))
+            if record_date:
+                record[self.cursor_field] = record_date
+                if account_id and record_date > self._pending_cursor.get(account_id, ""):
+                    self._pending_cursor[account_id] = record_date
 
             yield record
+
+    def read_records(
+        self,
+        sync_mode: SyncMode,
+        cursor_field: Optional[List[str]] = None,
+        stream_slice: Optional[Mapping[str, Any]] = None,
+        stream_state: Optional[Mapping[str, Any]] = None,
+    ) -> Iterable[Mapping[str, Any]]:
+        """
+        The cursor is only advanced once a whole date window has been read.
+
+        Rows come back in no particular date order within a window, so promoting
+        the running maximum into `state` as records stream (which is what
+        CheckpointMixin would otherwise checkpoint) can persist the *last* day of a
+        window while earlier days of that same window are still unread. A failure
+        at that point resumes past data that was never emitted. Committing per
+        completed slice keeps the cursor honest: it only ever names a day whose
+        window was read end to end.
+        """
+        yield from super().read_records(
+            sync_mode=sync_mode, cursor_field=cursor_field, stream_slice=stream_slice, stream_state=stream_state
+        )
+
+        account_id = str(stream_slice["account_id"]) if stream_slice else None
+        if account_id is None:
+            return
+        window_max = self._pending_cursor.pop(account_id, None)
+        if window_max is None:
+            return
+        account_state = self._state.setdefault(account_id, {})
+        if window_max > account_state.get(self.cursor_field, ""):
+            account_state[self.cursor_field] = window_max
