@@ -65,22 +65,30 @@ class SourceKwaiAds(AbstractSource):
 
         advertisers = self._build_advertisers(config, **common_kwargs)
 
-        report_kwargs: Mapping[str, Any] = {
-            **common_kwargs,
-            "parent": advertisers,
-            "start_date": config["start_date"],
-            "end_date": config.get("end_date"),
-            "time_zone": config.get("time_zone", "UTC-3"),
-            "account_ids": config.get("account_ids"),
-        }
+        def report_kwargs() -> Mapping[str, Any]:
+            # A fresh parent per report stream. Sharing one `Advertisers` instance
+            # across the report streams silently starves all but the first of them:
+            # the parent is consumed via `Stream.read()`, which marks a resumable
+            # full-refresh stream complete in its own cursor, so every later reader
+            # sees an empty account list and produces zero slices. `use_cache=True`
+            # on the parent means these extra instances still cost only one HTTP
+            # call between them.
+            return {
+                **common_kwargs,
+                "parent": self._build_advertisers(config, **common_kwargs),
+                "start_date": config["start_date"],
+                "end_date": config.get("end_date"),
+                "time_zone": config.get("time_zone", "UTC-3"),
+                "account_ids": config.get("account_ids"),
+            }
 
         return [
             advertisers,
-            Campaigns(**report_kwargs),
-            AdGroups(**report_kwargs),
-            Ads(**report_kwargs),
+            Campaigns(**report_kwargs()),
+            AdGroups(**report_kwargs()),
+            Ads(**report_kwargs()),
             AdsReportsDaily(
-                **report_kwargs,
+                **report_kwargs(),
                 window_in_days=config.get("window_in_days", 30),
                 lookback_window_days=config.get("lookback_window_days", 3),
             ),
