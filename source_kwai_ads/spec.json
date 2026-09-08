@@ -30,13 +30,13 @@
       "agent_id": {
         "type": "integer",
         "title": "Agent ID",
-        "description": "The Kwai Business Center agency (agent) ID that owns the advertiser accounts to sync. Only used to list accounts for the 'advertisers' stream and only if Account IDs is empty -- if you already know your account IDs, set those instead and leave this blank. Some app registrations (e.g. 'channel developer' apps) are rejected outright when using Agent ID to list accounts, no matter its value.",
+        "description": "Deprecated for most accounts -- prefer Corp ID. 'Channel developer' app registrations are rejected outright when listing accounts by Agent ID ('The channel developer can not use agentId to query account list'), confirmed across two separate apps and several agent IDs. Only set this if Corp ID is unavailable and your app registration is known to permit it.",
         "order": 3
       },
       "corp_id": {
         "type": "integer",
         "title": "Corp ID",
-        "description": "Alternative to Agent ID for listing accounts. Takes precedence over Agent ID when both are set. Same caveats as Agent ID apply -- prefer Account IDs if you already know them.",
+        "description": "The Kwai Business Center corporation ID. NOTE: a Corp ID identifies the ADVERTISER, not your agency -- one corporation typically contains the accounts of several competing agencies serving that same advertiser. Listing by Corp ID returns all of them, including accounts you may have no entitlement to read. Use this only to discover and confirm which accounts are yours, then restrict the sync with Account IDs. Takes precedence over Agent ID when both are set.",
         "order": 3.5
       },
       "start_date": {
@@ -60,7 +60,7 @@
       "account_ids": {
         "type": "array",
         "title": "Account IDs",
-        "description": "The advertiser account IDs to sync. Recommended: when set, campaigns/ad_groups/ads/ads_reports_daily query these accounts directly and never call the account-listing endpoint, avoiding a permission error some app registrations hit there. Leave empty only if your app can list accounts via Agent ID or Corp ID.",
+        "description": "The advertiser account IDs to sync. Set this to the accounts your organization is actually entitled to read. When set, the report streams query exactly these accounts and never call the account-listing endpoint. Leaving it empty syncs EVERY account the Corp ID exposes, which in a shared-advertiser corporation means other agencies' accounts too -- only do that if you are certain the whole corporation is yours. Review the list against the 'advertisers' stream when accounts are added.",
         "items": { "type": "integer" },
         "order": 6
       },

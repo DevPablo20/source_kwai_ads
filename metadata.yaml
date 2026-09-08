@@ -2,7 +2,7 @@ data:
   connectorSubtype: api
   connectorType: source
   definitionId: 5a2ddcd3-80a8-4def-ab82-113fee6876ac
-  dockerImageTag: 0.1.0
+  dockerImageTag: 0.2.0
   dockerRepository: jaberpablo/source-kwai-ads
   githubIssueLabel: source-kwai-ads
   icon: icon.svg
