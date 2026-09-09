@@ -1,4 +1,4 @@
-connector_image: jaberpablo/source-kwai-ads:dev
+connector_image: devpablo20/source-kwai-ads:dev
 acceptance_tests:
   spec:
     tests:
